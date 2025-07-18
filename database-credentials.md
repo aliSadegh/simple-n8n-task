@@ -11,4 +11,5 @@ You can add new postgres credential for connect to database:
 - SSL: `Disable`
 - Post: `5432`
 
-Add Postgres node in N8N and choose Operation `select` on table `processed_posts`
+## Add Postgres node 
+In N8N add `postgres` node and choose Operation `select` on table `processed_posts`
