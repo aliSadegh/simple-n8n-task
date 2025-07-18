@@ -1,5 +1,6 @@
 # N8N Postgres Credential
 
+We choose Supabase Postgres as database because we can simply connect to that without any VPN.
 ## Add Postgres Credential
 
 You can add new postgres credential for connect to database:
