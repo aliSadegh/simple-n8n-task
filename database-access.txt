@@ -1,5 +1,5 @@
 Transaction Pooler:
-postgresql://postgres.rdnvsuoxbvvxleoeoxax:My$uperRead0nlyPwd@aws-0-eu-north-1.pooler.supabase.com:6543/postgres
+postgresql://read_only_user.rdnvsuoxbvvxleoeoxax:My$uperRead0nlyPwd@aws-0-eu-north-1.pooler.supabase.com:5432/postgres
 
 Host: aws-0-eu-north-1.pooler.supabase.com
 Port: 5432
