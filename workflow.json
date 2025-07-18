@@ -1,0 +1,276 @@
+{
+  "name": "Process Posts",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "=https://jsonplaceholder.typicode.com/posts/{{$json.id}}/comments",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        288,
+        -32
+      ],
+      "id": "02a2dee1-ef53-4021-8fda-4ad495a16f57",
+      "name": "Get Comments",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "url": "=https://jsonplaceholder.typicode.com/posts/{{$json.postId}}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        80,
+        -32
+      ],
+      "id": "ac632969-8191-4d3f-9c32-83fa7de673b3",
+      "name": "Get Posts",
+      "retryOnFail": true,
+      "maxTries": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "const posts = $('Get Posts').all();\nconst comments = $('Get Comments').all().map(item => item.json);\n\n// Helper functions\nfunction toTitleCase(str) {\n  return str.replace(/\\w\\S*/g, (txt) => \n    txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()\n  ).replace(/\\s+/g, ' ').trim();\n}\n\nfunction extractKeywords(text, count = 3) {\n  return text.toLowerCase().split(' ').slice(0, count).filter(word => word.length > 0);\n}\n\nfunction generateRecordId(id) {\n  return `POST_${id.toString().padStart(3, '0')}`;\n}\n\n// Process post data\nfunction processPost(post){\n  const cleanedTitle = toTitleCase(post.title);\n  const truncatedBody = post.body.length > 100 ? \n    post.body.substring(0, 100) + '...' : post.body;\n  const wordCount = post.body.split(' ').length;\n  \n  // Determine category\n  let category;\n  if (wordCount < 20) category = 'short';\n  else if (wordCount <= 40) category = 'medium';\n  else category = 'long';\n  \n  // Generate tags\n  const tags = ['processed'];\n  if (post.body.includes('et')) tags.push('latin');\n  if (post.title.length > 30) tags.push('long_title');\n  \n  // Determine status\n  const status = post.title.length > 50 ? 'needs_review' : 'processed';\n  \n  // Process comments\n  const processedComments = comments.map(comment => ({\n    comment_id: comment.id,\n    email: comment.email,\n    short_body: comment.body.substring(0, 50) + (comment.body.length > 50 ? '...' : ''),\n    body_length: comment.body.length,\n    status: comment.body.includes('dolor') ? 'invalid' : 'valid',\n    keywords: extractKeywords(comment.body, 2)\n  }));\n  \n  // Create final output\n  const result = {\n    record_id: generateRecordId(post.id),\n    content: {\n      title: cleanedTitle,\n      body: truncatedBody,\n      word_count: wordCount,\n      category: category,\n      keywords: extractKeywords(post.title)\n    },\n    metadata: {\n      original_id: post.id,\n      processed_date: new Date().toISOString().split('T')[0],\n      status: status,\n      tags: tags,\n      processing_steps: [\n        'title_cleaned',\n        'body_truncated', \n        'keywords_extracted',\n        'category_assigned'\n      ]\n    },\n    analytics: {\n      title_length: cleanedTitle.length,\n      body_length: truncatedBody.length,\n      has_long_title: post.title.length > 30,\n      common_words: ['the', 'and', 'of']\n    },\n    comments: processedComments\n  };\n  \n  return result;\n}\n\nlet results = [];\nfor (let i = 0; i < posts.length; i++) {\n  let data = processPost(posts[i].json);\n  results.push(data)\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        528,
+        -32
+      ],
+      "id": "c7d22c8f-aa9f-428e-8267-e63e9bbbaebc",
+      "name": "Data Processing"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = [];\nfor (let i = 1; i <= 10; i++) {\n  items.push({ json: { postId: i } });\n}\nreturn items;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -112,
+        -32
+      ],
+      "id": "c82d3ffd-c40c-4e16-8fe9-65368727a330",
+      "name": "Generate IDs"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "processed_posts",
+          "mode": "list",
+          "cachedResultName": "processed_posts"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "record_id": "={{ $json.record_id }}",
+            "payload": "={{ $json }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "record_id",
+              "displayName": "record_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "payload",
+              "displayName": "payload",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        752,
+        -32
+      ],
+      "id": "2aae754d-fb88-4fa8-8225-8263e2450600",
+      "name": "Insert rows",
+      "credentials": {
+        "postgres": {
+          "id": "3kN4gIKV3ESUXv3r",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -272,
+        -208
+      ],
+      "id": "54d36d51-4522-4126-b847-d2209466b4cb",
+      "name": "Error Trigger",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -272,
+        -32
+      ],
+      "id": "fa132c6d-febc-4eaa-8763-3e519a58203f",
+      "name": "Start"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        -64,
+        -208
+      ],
+      "id": "eab97ff3-b4c1-4759-86f7-58a42f6bd34f",
+      "name": "Send email",
+      "webhookId": "170d8c57-e640-4d53-b602-9797df868170"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get Comments": {
+      "main": [
+        [
+          {
+            "node": "Data Processing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Posts": {
+      "main": [
+        [
+          {
+            "node": "Get Comments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Processing": {
+      "main": [
+        [
+          {
+            "node": "Insert rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate IDs": {
+      "main": [
+        [
+          {
+            "node": "Get Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Generate IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "65a7d4ce-d2fe-480e-9fd6-20e020199344",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8649cb34d0161f31db27f1b02f7615edc1e2f5a6cf35d8f6dd01f4e8483cde4c"
+  },
+  "id": "rmFfWb2Rnl1DCsoQ",
+  "tags": []
+}
